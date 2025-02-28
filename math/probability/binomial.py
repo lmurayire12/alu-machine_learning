@@ -1,49 +1,51 @@
 #!/usr/bin/env python3
-""" defines Normal class that represents normal distribution """
+""" defines Binomial class that represents binomial distribution """
 
 
-class Normal:
+class Binomial:
     """
-    class that represents normal distribution
+    class that represents Binomial distribution
 
     class constructor:
-        def __init__(self, data=None, mean=0., stddev=1.)
+        def __init__(self, data=None, n=1, p=0.5)
 
     instance attributes:
-        mean [float]: the mean of the distribution
-        stddev [float]: the standard deviation of the distribution
+        n [int]: the number of Bernoilli trials
+        p [float]: the probability of a success
 
     instance methods:
-        def z_score(self, x): calculates the z-score of a given x-value
-        def x_value(self, z): calculates the x-value of a given z-score
-        def pdf(self, x): calculates PDF for given x-value
-        def cdf(self, x): calculates CDF for given x-value
+        def pmf(self, k): calculates PMF for given number of successes
+        def cdf(self, k): calculates CDF for given number of successes
     """
 
-    def __init__(self, data=None, mean=0., stddev=1.):
+    def __init__(self, data=None, n=1, p=0.5):
         """
         class constructor
 
         parameters:
             data [list]: data to be used to estimate the distibution
-            mean [float]: the mean of the distribution
-            stddev [float]: the standard deviation of the distribution
+            n [int]: the number of Bernoilli trials
+            p [float]: the probability of a success
 
-        Sets the instance attributes mean and stddev as floats
+        Sets the instance attributes n and p
         If data is not given:
-            Use the given mean and stddev
-            raise ValueError if stddev is not positive value
+            Use the given n and p
+            Raise ValueError if n is not positive value
+            Raise ValueError if p is not a valid probability
         If data is given:
-            Calculate the mean and stddev of data
+            Calculate n and p from data, rounding n to nearest int
             Raise TypeError if data is not a list
             Raise ValueError if data does not contain at least two data points
         """
         if data is None:
-            if stddev < 1:
-                raise ValueError("stddev must be a positive value")
+            if n < 1:
+                raise ValueError("n must be a positive value")
             else:
-                self.stddev = float(stddev)
-                self.mean = float(mean)
+                self.n = n
+            if p <= 0 or p >= 1:
+                raise ValueError("p must be greater than 0 and less than 1")
+            else:
+                self.p = p
         else:
             if type(data) is not list:
                 raise TypeError("data must be a list")
@@ -51,78 +53,66 @@ class Normal:
                 raise ValueError("data must contain multiple values")
             else:
                 mean = float(sum(data) / len(data))
-                self.mean = mean
                 summation = 0
                 for x in data:
                     summation += ((x - mean) ** 2)
-                stddev = (summation / len(data)) ** (1 / 2)
-                self.stddev = stddev
+                variance = (summation / len(data))
+                q = variance / mean
+                p = (1 - q)
+                n = round(mean / p)
+                p = float(mean / n)
+                self.n = n
+                self.p = p
 
-    def z_score(self, x):
+    def pmf(self, k):
         """
-        calculates the z-score of a given x-value
+        calculates the value of the PMF for a given number of successes
 
         parameters:
-            x: x-value
+            k [int]: number of successes
+                If k is not an int, convert it to int
+                If k is out of range, return 0
 
         return:
-            z-score of x
+            the PMF value for k
         """
-        mean = self.mean
-        stddev = self.stddev
-        z = (x - mean) / stddev
-        return z
+        if type(k) is not int:
+            k = int(k)
+        if k < 0:
+            return 0
+        p = self.p
+        n = self.n
+        q = (1 - p)
+        n_factorial = 1
+        for i in range(n):
+            n_factorial *= (i + 1)
+        k_factorial = 1
+        for i in range(k):
+            k_factorial *= (i + 1)
+        nk_factorial = 1
+        for i in range(n - k):
+            nk_factorial *= (i + 1)
+        binomial_co = n_factorial / (k_factorial * nk_factorial)
+        pmf = binomial_co * (p ** k) * (q ** (n - k))
+        return pmf
 
-    def x_value(self, z):
+    def cdf(self, k):
         """
-        calculates the x-value of a given z-score
+        calculates the value of the CDF for a given number of successes
 
         parameters:
-            z: z-score
+            k [int]: number of successes
+                If k is not an int, convert it to int
+                If k is out of range, return 0
 
         return:
-            x-value of z
+            the CDF value for k
         """
-        mean = self.mean
-        stddev = self.stddev
-        x = (z * stddev) + mean
-        return x
-
-    def pdf(self, x):
-        """
-        calculates the value of the PDF for a given x-value
-
-        parameters:
-            x: x-value
-
-        return:
-            the PDF value for x
-        """
-        mean = self.mean
-        stddev = self.stddev
-        e = 2.7182818285
-        pi = 3.1415926536
-        power = -0.5 * (self.z_score(x) ** 2)
-        coefficient = 1 / (stddev * ((2 * pi) ** (1 / 2)))
-        pdf = coefficient * (e ** power)
-        return pdf
-
-    def cdf(self, x):
-        """
-        calculates the value of the CDF for a given x-value
-
-        parameters:
-            x: x-value
-
-        return:
-            the CDF value for x
-        """
-        mean = self.mean
-        stddev = self.stddev
-        pi = 3.1415926536
-        value = (x - mean) / (stddev * (2 ** (1 / 2)))
-        erf = value - ((value ** 3) / 3) + ((value ** 5) / 10)
-        erf = erf - ((value ** 7) / 42) + ((value ** 9) / 216)
-        erf *= (2 / (pi ** (1 / 2)))
-        cdf = (1 / 2) * (1 + erf)
+        if type(k) is not int:
+            k = int(k)
+        if k < 0:
+            return 0
+        cdf = 0
+        for i in range(k + 1):
+            cdf += self.pmf(i)
         return cdf
