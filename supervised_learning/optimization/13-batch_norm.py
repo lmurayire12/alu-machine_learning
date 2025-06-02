@@ -1,4 +1,5 @@
-ring rate decay with tensorflow
+#!/usr/bin/env python3
+""" Learing rate decay with tensorflow
 """
 
 
